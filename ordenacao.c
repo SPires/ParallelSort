@@ -86,64 +86,51 @@ int main(int argc,char** argv){
   int *vetor_local;       // endereco inicial do vetor local
   int indice_local;       // indice inicial o merge
   int tamanho_local;      // numero de elementos a ordenar
-  int tamanho_leitura = 8;
-  int leitura[8] = {5, 3, 4, 1, 0, 2, 6, 7};
+  int tamanho_leitura = 20;
+  int leitura[20] = {5, 3, 4, 1, 0, 2, 6, 7, 9, 11, 10, 15, 13, 12, 8, 14, 19, 17, 18, 16};
+  double start_time, end_time;
 
   MPI_Status status;
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &numero_processos);
 
+  if(my_rank == 0)
+  	start_time = MPI_Wtime();
+  
   tamanho_local = tamanho_leitura/numero_processos;
   indice_local = tamanho_local * my_rank;
   vetor_local = leitura + indice_local;
   
-  if (my_rank == numero_processos - 1) {
-    tamanho_local = tamanho_local + (tamanho_leitura % numero_processos);
-  }
-
-  _merge_sort(vetor_local, tamanho_local);
-
-  printf("------------------------------------------------------\n");
-  printf("Processo: %d Inicial: %d Tamanho: %d\nVetor: ", my_rank, indice_local, tamanho_local);
-  imprimir_vetor(vetor_local, tamanho_local);
-  printf("------------------------------------------------------\n");
-
+  _merge_sort(vetor_local, tamanho_local);  
 
   if(my_rank == 0){
-    int i, recebimentos=0;
+    int i;
     int recv[tamanho_local], ordenado[tamanho_leitura];
     concatenar_vetores(vetor_local, tamanho_local, ordenado, 0, ordenado);
-    for (i = 1; i < numero_processos-1; i++){
-      MPI_Recv(recv, tamanho_local, MPI_INT, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, &status);
-      recebimentos++;
-      merge(ordenado, tamanho_local*(i+1), recv, tamanho_local);
-      concatenar_vetores(ordenado, tamanho_local*(i+1), recv, tamanho_local, ordenado);
-      printf("Passo %d:", i);
-      imprimir_vetor(ordenado, tamanho_local*(i+1));
+    for (i = 1; i < numero_processos; i++){
+      MPI_Recv(recv, tamanho_local, MPI_INT, i, tag, MPI_COMM_WORLD, &status);
+      merge(ordenado, tamanho_local*i, recv, tamanho_local);
+      concatenar_vetores(ordenado, tamanho_local*i, recv, tamanho_local, ordenado);
     }
-    if (recebimentos == numero_processos-2){
-      MPI_Recv(recv, tamanho_local+(tamanho_leitura%numero_processos), MPI_INT, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, &status);
-      recebimentos++;
-	//problema na concatenação dos vetores.
-      merge(ordenado, tamanho_local*(i+1), recv, tamanho_local);
-      concatenar_vetores(ordenado, tamanho_local*(i+1), recv, tamanho_local, ordenado);
-      printf("Passo %d:", i);
-      imprimir_vetor(ordenado, tamanho_local*(i+1));
+    if (tamanho_leitura%numero_processos != 0){
+      int *final = &leitura[tamanho_local*numero_processos];
+      int tamanho_final = tamanho_leitura%numero_processos;  
+      _merge_sort(final, tamanho_final);
+      merge(ordenado, tamanho_leitura - tamanho_final, final, tamanho_final);
+      concatenar_vetores(ordenado, tamanho_local*i, final, tamanho_final, ordenado);
     }
+    printf("\nOrdenado:");
+    imprimir_vetor(ordenado, tamanho_leitura);
   }
   else{
     MPI_Send(vetor_local, tamanho_local, MPI_INT, dest, tag, MPI_COMM_WORLD);
   }
-/*
-    printf("Saida: ");
-    imprimir_vetor(entrada);
 
-    printf("\nCorreto? %s\n", (esta_correto(entrada)) ? "Sim" : "Não");
-    printf("\n");
-    printf("======================================================\n");
+  if(my_rank == 0){
+  	end_time = MPI_Wtime();
+  	printf("\nTempo total de execução: %f.\n", end_time-start_time);
   }
-*/
   MPI_Finalize();
   return 0;
 }
