@@ -111,13 +111,21 @@ int main(int argc,char** argv){
 
 
   if(my_rank == 0){
-    int i;
+    int i, recebimentos=0;
     int recv[tamanho_local], ordenado[tamanho_leitura];
     concatenar_vetores(vetor_local, tamanho_local, ordenado, 0, ordenado);
-    for (i = 1; i < numero_processos; i++){
-      //mensagem sendo trucada
-      
+    for (i = 1; i < numero_processos-1; i++){
       MPI_Recv(recv, tamanho_local, MPI_INT, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, &status);
+      recebimentos++;
+      merge(ordenado, tamanho_local*(i+1), recv, tamanho_local);
+      concatenar_vetores(ordenado, tamanho_local*(i+1), recv, tamanho_local, ordenado);
+      printf("Passo %d:", i);
+      imprimir_vetor(ordenado, tamanho_local*(i+1));
+    }
+    if (recebimentos == numero_processos-2){
+      MPI_Recv(recv, tamanho_local+(tamanho_leitura%numero_processos), MPI_INT, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, &status);
+      recebimentos++;
+	//problema na concatenação dos vetores.
       merge(ordenado, tamanho_local*(i+1), recv, tamanho_local);
       concatenar_vetores(ordenado, tamanho_local*(i+1), recv, tamanho_local, ordenado);
       printf("Passo %d:", i);
