@@ -115,6 +115,8 @@ int main(int argc,char** argv){
     int recv[tamanho_local], ordenado[tamanho_leitura];
     concatenar_vetores(vetor_local, tamanho_local, ordenado, 0, ordenado);
     for (i = 1; i < numero_processos; i++){
+      //mensagem sendo trucada
+      
       MPI_Recv(recv, tamanho_local, MPI_INT, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, &status);
       merge(ordenado, tamanho_local*(i+1), recv, tamanho_local);
       concatenar_vetores(ordenado, tamanho_local*(i+1), recv, tamanho_local, ordenado);
