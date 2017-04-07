@@ -97,6 +97,10 @@ int main(int argc,char** argv){
   tamanho_local = tamanho_leitura/numero_processos;
   indice_local = tamanho_local * my_rank;
   vetor_local = leitura + indice_local;
+  
+  if (my_rank == numero_processos - 1) {
+    tamanho_local = tamanho_local + (tamanho_leitura % numero_processos);
+  }
 
   _merge_sort(vetor_local, tamanho_local);
 
